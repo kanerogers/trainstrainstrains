@@ -1,0 +1,43 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "cargo",
+			"command": "run",
+			"args": [
+				"--target-dir",
+				"target-bin"
+			],
+			"problemMatcher": [
+				"$rustc"
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"label": "rust: cargo run",
+			"env": {
+				"RUST_LOG": "debug",
+			}
+		},
+		{
+			"type": "cargo",
+			"command": "test",
+			"args": [
+				"-p",
+				"asset_loader"
+			],
+			"problemMatcher": [
+				"$rustc"
+			],
+			"group": {
+				"kind": "test",
+				"isDefault": true
+			},
+			"label": "rust: cargo test",
+			"env": {
+				"RUST_LOG": "debug",
+			}
+		}
+	]
+}

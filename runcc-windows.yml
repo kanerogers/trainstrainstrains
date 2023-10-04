@@ -1,0 +1,5 @@
+commands:
+  bin: |
+    cargo run --target-dir "target-bin"
+  systems: |
+    cargo watch -w game -x "build -p game"

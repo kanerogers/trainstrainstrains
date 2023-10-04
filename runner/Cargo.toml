@@ -1,0 +1,21 @@
+[package]
+edition = "2021"
+name = "runner"
+version = "0.1.0"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+asset-loader = {path = "../asset_loader"}
+common = {path = "../common"}
+env_logger = "0.10.0"
+game = {path = "../game"}
+gui = {path = "../gui"}
+hot-lib-reloader = "^0.6"
+yakui-winit = {git = "https://github.com/leetvr/yakui", branch = "vulkan_fixes"}
+
+[target.'cfg(any(target_os = "windows", target_os="linux"))'.dependencies]
+vulkan_renderer = {path = "../vulkan_renderer"}
+
+[target.'cfg(target_os = "macos")'.dependencies]
+metal_renderer = {path = "../metal_renderer"}
