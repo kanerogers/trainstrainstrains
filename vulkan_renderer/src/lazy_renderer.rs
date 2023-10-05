@@ -347,7 +347,7 @@ impl LazyRenderer {
             },
             vk::ClearValue {
                 depth_stencil: vk::ClearDepthStencilValue {
-                    depth: 1.0,
+                    depth: 0.0,
                     stencil: 0,
                 },
             },
@@ -935,7 +935,7 @@ fn create_mesh_pipeline(
     let depth_state_info = vk::PipelineDepthStencilStateCreateInfo {
         depth_test_enable: 1,
         depth_write_enable: 1,
-        depth_compare_op: vk::CompareOp::LESS_OR_EQUAL,
+        depth_compare_op: vk::CompareOp::GREATER,
         front: noop_stencil_state,
         back: noop_stencil_state,
         max_depth_bounds: 1.0,
