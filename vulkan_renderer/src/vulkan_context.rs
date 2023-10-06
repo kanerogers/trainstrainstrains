@@ -123,16 +123,7 @@ impl VulkanContext {
             _ => surface_capabilities.current_extent,
         };
 
-        let present_modes = unsafe {
-            surface_loader
-                .get_physical_device_surface_present_modes(physical_device, surface)
-                .unwrap()
-        };
-        let present_mode = present_modes
-            .iter()
-            .cloned()
-            .find(|&mode| mode == vk::PresentModeKHR::MAILBOX)
-            .unwrap_or(vk::PresentModeKHR::FIFO);
+        let present_mode = vk::PresentModeKHR::FIFO;
 
         let (pool, draw_command_buffer) = create_command_pool(queue_family_index, &device);
         let device_memory_properties =

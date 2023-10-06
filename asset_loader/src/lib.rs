@@ -119,7 +119,7 @@ impl AssetLoadJob {
 
 impl AssetLoader {
     pub fn load_assets(&mut self, world: &mut hecs::World) {
-        log::debug!("Checking for assets to load..");
+        log::trace!("Checking for assets to load..");
         let mut command_buffer = hecs::CommandBuffer::new();
 
         for (_, (asset, info)) in world.query::<(&GLTFAsset, &Info)>().iter() {
@@ -158,7 +158,8 @@ impl AssetLoader {
                 }
                 AssetLoadState::Loaded(asset) => {
                     log::info!("Successfully imported asset!");
-                    self.cache.insert(asset_to_import.name.clone(), asset.clone());
+                    self.cache
+                        .insert(asset_to_import.name.clone(), asset.clone());
                     command_buffer.remove_one::<AssetLoadToken>(entity);
                     command_buffer.insert_one(entity, asset);
                 }

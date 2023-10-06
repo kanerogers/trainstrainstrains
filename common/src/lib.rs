@@ -2,6 +2,7 @@ use std::collections::VecDeque;
 
 pub use anyhow;
 pub use bitflags;
+pub use enum_iterator;
 pub use glam;
 pub use hecs;
 use hecs::Entity;
@@ -63,7 +64,7 @@ impl Camera {
     pub fn resized(&mut self, window_size: winit::dpi::PhysicalSize<u32>) {
         let aspect_ratio = window_size.width as f32 / window_size.height as f32;
         let mut perspective =
-            glam::Mat4::perspective_rh(60_f32.to_radians(), aspect_ratio, 0.01, 1000.);
+            glam::Mat4::perspective_infinite_reverse_rh(60_f32.to_radians(), aspect_ratio, 0.01);
         perspective.y_axis[1] *= -1.;
         self.projection = perspective;
         self.screen_size = [window_size.width as f32, window_size.height as f32].into();

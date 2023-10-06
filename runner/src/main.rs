@@ -30,9 +30,18 @@ pub fn init<R: Renderer>() -> (
     let event_loop = winit::event_loop::EventLoop::new();
     let size = winit::dpi::LogicalSize::new(INITIAL_SCREEN_WIDTH, INITIAL_SCREEN_HEIGHT);
 
+    let mut target_monitor = None;
+    for monitor in event_loop.available_monitors() {
+        let monitor = Some(monitor.clone());
+        if monitor != event_loop.primary_monitor() {
+            target_monitor = monitor
+        }
+    }
+
     let window = winit::window::WindowBuilder::new()
         .with_inner_size(size)
         .with_title("Clipper".to_string())
+        .with_fullscreen(Some(winit::window::Fullscreen::Borderless(target_monitor)))
         .build(&event_loop)
         .unwrap();
     let mut game = game::init();

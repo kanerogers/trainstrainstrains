@@ -1,4 +1,5 @@
 mod input;
+mod map_generation;
 mod systems;
 pub mod time;
 use common::{
@@ -9,7 +10,8 @@ use common::{
     winit::{self},
     Camera, GUIState, Line,
 };
-use components::{GLTFAsset, Storage, Transform, Velocity};
+use components::{GLTFAsset, Transform, Velocity};
+use map_generation::generate_map;
 use std::time::Instant;
 use systems::{
     from_na,
@@ -21,8 +23,10 @@ use systems::{
 use time::Time;
 
 pub const PLAYER_SPEED: f32 = 7.;
-pub const CAMERA_ZOOM_SPEED: f32 = 10.;
+pub const CAMERA_ZOOM_SPEED: f32 = 100.;
 pub const CAMERA_ROTATE_SPEED: f32 = 3.;
+pub const MAX_CAMERA_ZOOM: f32 = 400.;
+pub const MAP_SIZE: f32 = 1000.0; // 1km squared
 const RENDER_DEBUG_LINES: bool = false;
 
 // required due to reasons
@@ -35,6 +39,7 @@ pub fn init() -> Game {
 pub fn tick(game: &mut Game, _gui_state: &mut GUIState) -> bool {
     while game.time.start_update() {
         game.debug_lines.clear();
+        camera_target_controller(game);
         update_camera(game);
 
         if !game.game_over {
@@ -103,13 +108,21 @@ impl Default for Game {
 impl Game {
     pub fn new() -> Self {
         let mut world = hecs::World::default();
-        world.spawn((GLTFAsset::new("environment.glb"), Transform::default()));
+        world.spawn((
+            GLTFAsset::new("map.glb"),
+            Transform {
+                scale: Vec3::splat(MAP_SIZE / 2.0),
+                ..Default::default()
+            },
+        ));
+        world.spawn((CameraTarget, Transform::default(), Velocity::default()));
         let a = world.spawn((
             GLTFAsset::new("tracks.glb"),
             Transform::from_position([0., 0.1, 0.]),
             TrackSegment { a: None, b: None },
         ));
         create_track_segments(&mut world, a, 10);
+        generate_map(&mut world);
 
         let train = world.spawn((
             Train { current_segment: a },
@@ -119,7 +132,7 @@ impl Game {
         ));
 
         let camera = Camera {
-            desired_distance: 10.,
+            desired_distance: MAX_CAMERA_ZOOM,
             ..Default::default()
         };
 
@@ -152,18 +165,17 @@ impl Game {
         command_buffer.run_on(&mut self.world);
     }
 
-    pub fn get<'a, C: hecs::Component>(&'a self, entity: hecs::Entity) -> RefMut<'_, C> {
-        self.world.get::<&'a mut C>(entity).unwrap()
-    }
-
-    pub fn storage(&self) -> hecs::Entity {
+    pub fn get_first_with_tag<C: hecs::Component>(&self) -> hecs::Entity {
         self.world
-            .query::<()>()
-            .with::<&Storage>()
+            .query::<hecs::With<(), &C>>()
             .iter()
             .next()
             .unwrap()
             .0
+    }
+
+    pub fn get<'a, C: hecs::Component>(&'a self, entity: hecs::Entity) -> RefMut<'_, C> {
+        self.world.get::<&'a mut C>(entity).unwrap()
     }
 }
 
@@ -263,10 +275,14 @@ impl Input {
     }
 }
 
+pub struct CameraTarget;
+
 pub fn update_camera(game: &mut Game) {
+    let camera_target = game
+        .position_of(game.get_first_with_tag::<CameraTarget>())
+        .clone();
     let camera = &mut game.camera;
-    let train_position = game.world.get::<&Transform>(game.train).unwrap().position;
-    camera.target = train_position;
+    camera.target = camera_target;
     let input = &game.input;
     let dt = game.time.delta();
 
@@ -296,11 +312,50 @@ pub fn update_camera(game: &mut Game) {
     camera.position = look_position;
 }
 
+pub fn camera_target_controller(game: &mut Game) {
+    let dt = game.time.delta();
+    let camera_transform = game.camera.transform();
+    let input = &game.input;
+    let camera_target = game.get_first_with_tag::<CameraTarget>();
+    let (transform, velocity) = game
+        .world
+        .query_one_mut::<(&mut Transform, &mut Velocity)>(camera_target)
+        .unwrap();
+
+    let input_movement = Vec3::new(
+        input.keyboard_state.as_axis(Keys::A, Keys::D),
+        0.,
+        input.keyboard_state.as_axis(Keys::W, Keys::S),
+    )
+    .normalize();
+
+    // Camera relative controls
+    let mut forward = camera_transform.transform_vector3(Vec3::Z);
+    forward.y = 0.;
+    forward = forward.normalize();
+
+    let mut right = camera_transform.transform_vector3(Vec3::X);
+    right.y = 0.;
+    right = right.normalize();
+
+    let mut movement = forward * input_movement.z + right * input_movement.x;
+    movement = movement.normalize_or_zero();
+    movement.y = input_movement.y;
+    movement = movement.normalize_or_zero();
+
+    velocity.linear = velocity.linear.lerp(movement, 0.1);
+
+    // Velocity, baby!
+    let displacement = velocity.linear * PLAYER_SPEED * (game.camera.desired_distance / 2.) * dt;
+    transform.position += displacement;
+    transform.position.y = transform.position.y.min(5.).max(1.);
+}
+
 fn set_camera_distance(input: &Input, camera: &mut Camera, dt: f32) {
     if input.camera_zoom.abs() > 0. {
         camera.start_distance = camera.distance;
         camera.desired_distance += input.camera_zoom;
-        camera.desired_distance = camera.desired_distance.clamp(5., 50.);
+        camera.desired_distance = camera.desired_distance.clamp(5., MAX_CAMERA_ZOOM);
     }
 
     let current_delta = camera.desired_distance - camera.distance;

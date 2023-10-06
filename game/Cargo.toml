@@ -8,6 +8,7 @@ version = "0.1.0"
 [dependencies]
 common = {path = "../common"}
 components = {path = "../components"}
+enum-iterator = "1.4.1"
 
 [lib]
 crate-type = ["cdylib", "rlib"]

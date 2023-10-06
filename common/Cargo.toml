@@ -8,6 +8,7 @@ version = "0.1.0"
 [dependencies]
 anyhow = "1.0.72"
 bitflags = "2.3.3"
+enum-iterator = "1.4.1"
 glam = "0.22.0"
 hecs = {version = "0.10.3", default-features = false}
 log = "0.4.19"
